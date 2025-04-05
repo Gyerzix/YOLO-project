@@ -4,3 +4,6 @@ __pycache__/
 .DS_Store
 *.log
 .env
+yolov8n.pt
+db.sqlite3
+media

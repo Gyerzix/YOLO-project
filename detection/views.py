@@ -1,31 +1,48 @@
 # detection/views.py
 
+import os
+import uuid
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.conf import settings
 from ultralytics import YOLO
-from PIL import Image
 
-model = YOLO("yolov8n.pt")  # Используем предобученную модель
+model = YOLO("yolov8n.pt")
 
 
 def home(request):
-    return render(request, 'detection/home.html')  # показываем страницу загрузки
-
-
-def detect_objects(request):
     if request.method == "POST" and request.FILES.get("image"):
-        img = Image.open(request.FILES["image"]).convert("RGB")  # на всякий случай
-        results = model(img)
+        image = request.FILES["image"]
+        uid = uuid.uuid4().hex
+        original_filename = f"{uid}.jpg"
+        result_filename = f"{uid}_result.jpg"
+
+        original_path = os.path.join(settings.MEDIA_ROOT, original_filename)
+        result_path = os.path.join(settings.MEDIA_ROOT, result_filename)
+
+        # сохраняем оригинал
+        with open(original_path, "wb+") as f:
+            for chunk in image.chunks():
+                f.write(chunk)
+
+        # YOLO предсказание
+        results = model(original_path)
+        results[0].save(filename=result_path)  # сохраняем изображение с bbox
+
+        # собираем классы и вероятности
         detections = []
+        for box in results[0].boxes:
+            cls_id = int(box.cls[0])
+            confidence = float(box.conf[0])
+            label = model.names[cls_id]
+            detections.append({
+                "label": label,
+                "confidence": round(confidence, 2)
+            })
 
-        for result in results:
-            for box in result.boxes:
-                detections.append({
-                    "class": result.names[int(box.cls)],
-                    "confidence": float(box.conf),
-                    "bbox": list(map(float, box.xyxy[0]))
-                })
+        return render(request, "detection/home.html", {
+            "original_image_url": settings.MEDIA_URL + original_filename,
+            "result_image_url": settings.MEDIA_URL + result_filename,
+            "detections": detections
+        })
 
-        return JsonResponse({"detections": detections})
-
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return render(request, "detection/home.html")

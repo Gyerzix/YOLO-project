@@ -1,77 +1,94 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>YOLO Обнаружение объектов</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Обнаружение объектов YOLO</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      padding-top: 40px;
+    }
+
+    .container {
+      max-width: 900px;
+    }
+
+    .form-container {
+      background-color: #ffffff;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+    }
+
+    .images-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .image-block {
+      flex: 1 1 45%;
+      text-align: center;
+    }
+
+    .image-block img {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .results-list {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+  </style>
 </head>
-<body class="bg-light">
+<body>
+  <div class="container text-center">
+    <h1 class="mb-4">Обнаружение объектов с помощью YOLO</h1>
 
-<div class="container py-5">
-    <h2 class="mb-4">Обнаружение объектов с помощью YOLO</h2>
-
-    <form id="uploadForm" method="POST" enctype="multipart/form-data" class="mb-4">
+    <div class="form-container">
+      <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="mb-3">
-            <input class="form-control" type="file" name="image" id="imageInput" accept="image/*" required>
+          <input type="file" name="image" class="form-control" required>
         </div>
         <button type="submit" class="btn btn-primary">Распознать</button>
-    </form>
-
-    <div id="preview" class="mb-4" style="display: none;">
-        <h5>Превью изображения:</h5>
-        <img id="previewImage" src="" class="img-fluid" style="max-height: 400px;">
+      </form>
     </div>
 
-    <div id="result" style="display: none;">
-        <h5>Результаты:</h5>
-        <ul class="list-group" id="detectionsList"></ul>
+    {% if original_image_url %}
+    <div class="images-row mb-5">
+      <div class="image-block">
+        <h5>Исходное изображение</h5>
+        <img src="{{ original_image_url }}" alt="Исходное изображение">
+      </div>
+      <div class="image-block">
+        <h5>Результат (с bbox)</h5>
+        <img src="{{ result_image_url }}" alt="Результат">
+      </div>
     </div>
-</div>
 
-<script>
-    const form = document.getElementById('uploadForm');
-    const previewImage = document.getElementById('previewImage');
-    const imageInput = document.getElementById('imageInput');
-    const preview = document.getElementById('preview');
-    const result = document.getElementById('result');
-    const detectionsList = document.getElementById('detectionsList');
+    <div class="results-list">
+      <h5>Обнаруженные объекты:</h5>
+      {% if detections %}
+        {% for det in detections %}
+          <div class="alert alert-info">
+            <strong>Класс:</strong> {{ det.label }} <br>
+            <strong>Уверенность:</strong> {{ det.confidence }}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="alert alert-warning">Объекты не обнаружены</div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
 
-    imageInput.addEventListener('change', () => {
-        const file = imageInput.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                previewImage.src = e.target.result;
-                preview.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        const formData = new FormData(form);
-        fetch('/detect/', {
-            method: 'POST',
-            body: formData
-        }).then(res => res.json()).then(data => {
-            if (data.detections) {
-                result.style.display = 'block';
-                detectionsList.innerHTML = '';
-                data.detections.forEach(item => {
-                    const li = document.createElement('li');
-                    li.classList.add('list-group-item');
-                    li.innerText = `Класс: ${item.class}, Уверенность: ${item.confidence.toFixed(2)}`;
-                    detectionsList.appendChild(li);
-                });
-            } else {
-                alert("Ошибка при обработке изображения.");
-            }
-        });
-    });
-</script>
-
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

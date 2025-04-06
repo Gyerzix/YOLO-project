@@ -2,18 +2,16 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Обнаружение объектов YOLO</title>
+  <title>Загрузка изображений</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
       background-color: #f8f9fa;
       padding-top: 40px;
     }
-
     .container {
       max-width: 900px;
     }
-
     .form-container {
       background-color: #ffffff;
       padding: 25px;
@@ -21,74 +19,53 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
       margin-bottom: 30px;
     }
-
-    .images-row {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
+    .image-list {
+      margin-top: 30px;
     }
-
-    .image-block {
-      flex: 1 1 45%;
-      text-align: center;
+    .image-item {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
     }
-
-    .image-block img {
-      max-width: 100%;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    .results-list {
-      max-width: 700px;
-      margin: 0 auto;
+    .image-item:hover {
+      background-color: #f8f9fa;
     }
   </style>
 </head>
 <body>
-  <div class="container text-center">
-    <h1 class="mb-4">Обнаружение объектов с помощью YOLO</h1>
+  <div class="container">
+    <h1 class="mb-4">Загрузка изображений</h1>
 
     <div class="form-container">
       <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="mb-3">
-          <input type="file" name="image" class="form-control" required>
+          <label for="title" class="form-label">Название изображения</label>
+          <input type="text" class="form-control" id="title" name="title" placeholder="Введите название">
         </div>
-        <button type="submit" class="btn btn-primary">Распознать</button>
+        <div class="mb-3">
+          <label for="image" class="form-label">Выберите изображение</label>
+          <input type="file" class="form-control" id="image" name="image" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Загрузить</button>
       </form>
     </div>
 
-    {% if original_image_url %}
-    <div class="images-row mb-5">
-      <div class="image-block">
-        <h5>Исходное изображение</h5>
-        <img src="{{ original_image_url }}" alt="Исходное изображение">
-      </div>
-      <div class="image-block">
-        <h5>Результат (с bbox)</h5>
-        <img src="{{ result_image_url }}" alt="Результат">
-      </div>
-    </div>
-
-    <div class="results-list">
-      <h5>Обнаруженные объекты:</h5>
-      {% if detections %}
-        {% for det in detections %}
-          <div class="alert alert-info">
-            <strong>Класс:</strong> {{ det.label }} <br>
-            <strong>Уверенность:</strong> {{ det.confidence }}
-          </div>
-        {% endfor %}
+    <div class="image-list">
+      <h2>Загруженные изображения</h2>
+      {% if images %}
+        <div class="list-group">
+          {% for img in images %}
+            <a href="{% url 'image_detail' img.id %}" class="list-group-item list-group-item-action image-item">
+              {{ img.title }} (загружено {{ img.uploaded_at|date:"d.m.Y H:i" }})
+            </a>
+          {% endfor %}
+        </div>
       {% else %}
-        <div class="alert alert-warning">Объекты не обнаружены</div>
+        <p>Нет загруженных изображений</p>
       {% endif %}
     </div>
-    {% endif %}
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

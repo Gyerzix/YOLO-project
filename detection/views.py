@@ -1,9 +1,8 @@
-# detection/views.py
-
 import os
 import uuid
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
+from .models import UploadedImage, DetectionResult
 from ultralytics import YOLO
 
 model = YOLO("yolov8n.pt")
@@ -11,38 +10,48 @@ model = YOLO("yolov8n.pt")
 
 def home(request):
     if request.method == "POST" and request.FILES.get("image"):
-        image = request.FILES["image"]
-        uid = uuid.uuid4().hex
-        original_filename = f"{uid}.jpg"
-        result_filename = f"{uid}_result.jpg"
+        # Создаем запись в базе данных
+        uploaded_image = UploadedImage(
+            title=request.POST.get('title', ''),
+            image=request.FILES['image']
+        )
+        uploaded_image.save()
+        return redirect('home')
 
-        original_path = os.path.join(settings.MEDIA_ROOT, original_filename)
-        result_path = os.path.join(settings.MEDIA_ROOT, result_filename)
+    # Получаем все загруженные изображения
+    images = UploadedImage.objects.all().order_by('-uploaded_at')
+    return render(request, "detection/home.html", {'images': images})
 
-        # сохраняем оригинал
-        with open(original_path, "wb+") as f:
-            for chunk in image.chunks():
-                f.write(chunk)
+
+def image_detail(request, pk):
+    image = get_object_or_404(UploadedImage, pk=pk)
+
+    if request.method == "POST" and 'detect' in request.POST:
+        # Удаляем старые результаты, если они есть
+        DetectionResult.objects.filter(image=image).delete()
+
+        # Полный путь к изображению
+        image_path = os.path.join(settings.MEDIA_ROOT, image.image.name)
 
         # YOLO предсказание
-        results = model(original_path)
-        results[0].save(filename=result_path)  # сохраняем изображение с bbox
+        results = model(image_path)
 
-        # собираем классы и вероятности
-        detections = []
+        # Сохраняем результаты в базу данных
         for box in results[0].boxes:
             cls_id = int(box.cls[0])
             confidence = float(box.conf[0])
             label = model.names[cls_id]
-            detections.append({
-                "label": label,
-                "confidence": round(confidence, 2)
-            })
 
-        return render(request, "detection/home.html", {
-            "original_image_url": settings.MEDIA_URL + original_filename,
-            "result_image_url": settings.MEDIA_URL + result_filename,
-            "detections": detections
-        })
+            DetectionResult.objects.create(
+                image=image,
+                label=label,
+                confidence=confidence
+            )
 
-    return render(request, "detection/home.html")
+        return redirect('image_detail', pk=pk)
+
+    detections = DetectionResult.objects.filter(image=image)
+    return render(request, "detection/image_detail.html", {
+        'image': image,
+        'detections': detections
+    })

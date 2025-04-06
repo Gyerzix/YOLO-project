@@ -19,10 +19,10 @@ from django.urls import path
 from detection import views  # импортируем views из приложения
 from django.conf import settings
 from django.conf.urls.static import static
+from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.home, name='home'),  # главная страница
+    path("", include("detection.urls")),
 ]
 
 # чтобы работали media-файлы (картинки, результаты и т.д.)

@@ -10,7 +10,6 @@ model = YOLO("yolov8n.pt")
 
 def home(request):
     if request.method == "POST" and request.FILES.get("image"):
-        # Создаем запись в базе данных
         uploaded_image = UploadedImage(
             title=request.POST.get('title', ''),
             image=request.FILES['image']
@@ -18,7 +17,6 @@ def home(request):
         uploaded_image.save()
         return redirect('home')
 
-    # Получаем все загруженные изображения
     images = UploadedImage.objects.all().order_by('-uploaded_at')
     return render(request, "detection/home.html", {'images': images})
 
@@ -27,16 +25,26 @@ def image_detail(request, pk):
     image = get_object_or_404(UploadedImage, pk=pk)
 
     if request.method == "POST" and 'detect' in request.POST:
-        # Удаляем старые результаты, если они есть
+        # Удаляем старые результаты
         DetectionResult.objects.filter(image=image).delete()
 
-        # Полный путь к изображению
-        image_path = os.path.join(settings.MEDIA_ROOT, image.image.name)
+        # Пути к файлам
+        original_path = os.path.join(settings.MEDIA_ROOT, image.image.name)
+        result_filename = f"results/{uuid.uuid4().hex}.jpg"
+        result_path = os.path.join(settings.MEDIA_ROOT, result_filename)
+
+        # Создаем директорию results, если ее нет
+        os.makedirs(os.path.dirname(result_path), exist_ok=True)
 
         # YOLO предсказание
-        results = model(image_path)
+        results = model(original_path)
+        results[0].save(filename=result_path)  # сохраняем изображение с bbox
 
-        # Сохраняем результаты в базу данных
+        # Обновляем запись в базе данных
+        image.result_image = result_filename
+        image.save()
+
+        # Сохраняем обнаруженные объекты
         for box in results[0].boxes:
             cls_id = int(box.cls[0])
             confidence = float(box.conf[0])
@@ -53,5 +61,6 @@ def image_detail(request, pk):
     detections = DetectionResult.objects.filter(image=image)
     return render(request, "detection/image_detail.html", {
         'image': image,
-        'detections': detections
+        'detections': detections,
+        'has_result': image.result_image and os.path.exists(image.result_image.path)  # проверяем наличие файла
     })

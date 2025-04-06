@@ -4,6 +4,7 @@ from django.db import models
 class UploadedImage(models.Model):
     title = models.CharField(max_length=255, blank=True)
     image = models.ImageField(upload_to='uploads/')
+    result_image = models.ImageField(upload_to='results/', null=True, blank=True)  # новое поле
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

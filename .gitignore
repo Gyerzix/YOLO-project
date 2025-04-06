@@ -7,3 +7,4 @@ __pycache__/
 yolov8n.pt
 db.sqlite3
 media
+.idea

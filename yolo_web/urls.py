@@ -23,7 +23,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path("", include("detection.urls")),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # чтобы работали media-файлы (картинки, результаты и т.д.)
 if settings.DEBUG:

@@ -126,3 +126,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Разрешенные форматы загрузки
+ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'mp4', 'mov']
+
+# Увеличим лимит для видео (по умолчанию Django ограничивает загрузку 2.5 МБ)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 50  # 50 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 50

@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Загрузка изображений</title>
+  <title>Загрузка файлов</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
@@ -19,53 +19,150 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
       margin-bottom: 30px;
     }
-    .image-list {
+    .file-list {
       margin-top: 30px;
     }
-    .image-item {
+    .file-item {
       padding: 15px;
       border-bottom: 1px solid #eee;
     }
-    .image-item:hover {
+    .file-item:hover {
       background-color: #f8f9fa;
+    }
+    .file-type-tabs .nav-link {
+      cursor: pointer;
+    }
+    .file-input-container {
+      display: none;
+    }
+    .file-input-container.active {
+      display: block;
+    }
+    .file-preview {
+      max-width: 100px;
+      max-height: 100px;
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 class="mb-4">Загрузка изображений</h1>
+    <h1 class="mb-4">Загрузка файлов</h1>
 
     <div class="form-container">
-      <form method="POST" enctype="multipart/form-data">
+      <form method="POST" enctype="multipart/form-data" id="uploadForm">
         {% csrf_token %}
         <div class="mb-3">
-          <label for="title" class="form-label">Название изображения</label>
+          <label for="title" class="form-label">Название файла</label>
           <input type="text" class="form-control" id="title" name="title" placeholder="Введите название">
         </div>
+
         <div class="mb-3">
-          <label for="image" class="form-label">Выберите изображение</label>
-          <input type="file" class="form-control" id="image" name="image" required>
+          <ul class="nav nav-tabs file-type-tabs" id="fileTypeTabs">
+            <li class="nav-item">
+              <a class="nav-link active" data-file-type="image">Изображение</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-file-type="video">Видео</a>
+            </li>
+          </ul>
+
+          <div class="file-input-container active" id="imageInputContainer">
+            <label for="image" class="form-label mt-3">Выберите изображение</label>
+            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+          </div>
+
+          <div class="file-input-container" id="videoInputContainer">
+            <label for="video" class="form-label mt-3">Выберите видео</label>
+            <input type="file" class="form-control" id="video" name="video" accept="video/*">
+          </div>
         </div>
+
         <button type="submit" class="btn btn-primary">Загрузить</button>
       </form>
     </div>
 
-    <div class="image-list">
-      <h2>Загруженные изображения</h2>
-      {% if images %}
-        <div class="list-group">
-          {% for img in images %}
-            <a href="{% url 'image_detail' img.id %}" class="list-group-item list-group-item-action image-item">
-              {{ img.title }} (загружено {{ img.uploaded_at|date:"d.m.Y H:i" }})
-            </a>
-          {% endfor %}
+    <div class="file-list">
+      <h2>Загруженные файлы</h2>
+
+      <div class="row">
+        <div class="col-md-6">
+          <h3>Изображения</h3>
+          {% if images %}
+            <div class="list-group">
+              {% for img in images %}
+                <a href="{% url 'image_detail' img.id %}" class="list-group-item list-group-item-action file-item">
+                  {% if img.image %}
+                    <img src="{{ img.image.url }}" class="file-preview" alt="Превью">
+                  {% endif %}
+                  <div>
+                    <strong>{{ img.title }}</strong><br>
+                    <small>Загружено {{ img.uploaded_at|date:"d.m.Y H:i" }}</small>
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p>Нет загруженных изображений</p>
+          {% endif %}
         </div>
-      {% else %}
-        <p>Нет загруженных изображений</p>
-      {% endif %}
+
+        <div class="col-md-6">
+          <h3>Видео</h3>
+          {% if videos %}
+            <div class="list-group">
+              {% for vid in videos %}
+                <a href="{% url 'video_detail' vid.id %}" class="list-group-item list-group-item-action file-item">
+                  {% if vid.video %}
+                    <div class="file-preview bg-light d-flex align-items-center justify-content-center">
+                      <i class="fas fa-video" style="font-size: 2rem;"></i>
+                    </div>
+                  {% endif %}
+                  <div>
+                    <strong>{{ vid.title }}</strong><br>
+                    <small>Загружено {{ vid.uploaded_at|date:"d.m.Y H:i" }}</small>
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p>Нет загруженных видео</p>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <script>
+    // Переключение между вкладками изображений и видео
+    document.querySelectorAll('.file-type-tabs .nav-link').forEach(tab => {
+      tab.addEventListener('click', function(e) {
+        e.preventDefault();
+
+        // Удаляем активный класс у всех вкладок и контейнеров
+        document.querySelectorAll('.file-type-tabs .nav-link').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.file-input-container').forEach(c => c.classList.remove('active'));
+
+        // Добавляем активный класс текущей вкладке и соответствующему контейнеру
+        this.classList.add('active');
+        const fileType = this.getAttribute('data-file-type');
+        document.getElementById(`${fileType}InputContainer`).classList.add('active');
+      });
+    });
+
+    // Проверка формы перед отправкой
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+      const activeTab = document.querySelector('.file-type-tabs .nav-link.active');
+      const fileType = activeTab.getAttribute('data-file-type');
+      const fileInput = document.getElementById(fileType);
+
+      if (!fileInput.files.length) {
+        e.preventDefault();
+        alert(`Пожалуйста, выберите ${fileType === 'image' ? 'изображение' : 'видео'}`);
+      }
+    });
+  </script>
 </body>
 </html>

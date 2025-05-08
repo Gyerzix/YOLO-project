@@ -8,7 +8,7 @@ from .models import UploadedVideo, UploadedImage, DetectionResult
 from ultralytics import YOLO
 import subprocess
 
-model = YOLO("yolov8n.pt")
+model = YOLO("best.pt")
 
 
 def home(request):
@@ -122,7 +122,7 @@ def video_detail(request, pk):
             if os.path.exists(predicted_avi):
                 # 3. Конвертируем AVI в MP4 с абсолютными путями
                 ffmpeg_cmd = [
-                    r'C:\ffmpeg\ffmpeg.exe',
+                    'ffmpeg',
                     '-i', predicted_avi,
                     '-c:v', 'libx264',  # Перекодируем в H.264
                     '-c:a', 'aac',  # Перекодируем аудио в AAC (если есть)
@@ -132,9 +132,9 @@ def video_detail(request, pk):
                 ]
 
                 # Для Windows: преобразуем пути к формату, который понимает ffmpeg
-                if os.name == 'nt':
-                    ffmpeg_cmd[2] = predicted_avi.replace('\\', '/')
-                    ffmpeg_cmd[6] = mp4_path.replace('\\', '/')
+                # if os.name == 'nt':
+                #     ffmpeg_cmd[2] = predicted_avi.replace('\\', '/')
+                #     ffmpeg_cmd[6] = mp4_path.replace('\\', '/')
 
                 subprocess.run(ffmpeg_cmd, shell=True, check=True)
 
